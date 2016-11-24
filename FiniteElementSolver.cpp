@@ -5,16 +5,17 @@ using namespace std;
 
 FiniteElementSolver::FiniteElementSolver(
         vector<pair<Point,unsigned> >& points,
-        vector<pair<double,unsigned>> prescribed
+        vector<pair <double,unsigned> > prescribed
         )
 {
     prescribedValuePair = prescribed;
-
+    
     triangulation.insert(points.begin(),points.end());
     PDEMatrix= mat(2,2,fill::eye);
-
+    
     numberDof=points.size();
-    rightHandSide = mat(numberDof,1,fill::zeros);
+    rightHandSide = vec(numberDof,fill::zeros);
+    solution= vec(numberDof,fill::zeros);
     globalStiffnessMatrix = mat(numberDof,numberDof,fill::zeros);
     gradBasis<< -1<< 1<< 0<<endr
              << -1<< 0<< 1<<endr; 
@@ -63,18 +64,18 @@ mat FiniteElementSolver::calculateElementStiffnessMatrix(Delaunay::Face_handle e
 
 void FiniteElementSolver::calculateGlobalStiffnessMatrix()
 {
-
-      vector<unsigned> RowIndices;
-      vector<unsigned> ColumnIndices;  
-      vector<double>   ValueVector;
+    vector<unsigned long long> RowIndices;
+    vector<unsigned long long> ColumnIndices;    
+    vector<double>   ValueVector;
       
-      for(Delaunay::Finite_faces_iterator fit = triangulation.finite_faces_begin(); 
+     
+    for(Delaunay::Finite_faces_iterator fit = triangulation.finite_faces_begin(); 
         fit != triangulation.finite_faces_end(); ++fit) 
-      {
+    {
         Delaunay::Face_handle face = fit;
         mat elementStiffness(3,3);
         elementStiffness = calculateElementStiffnessMatrix(face);
-
+        
         for (int row=0; row<3;++row)
         {
             unsigned int globalRowIndex = face->vertex(row)->info();
@@ -87,24 +88,34 @@ void FiniteElementSolver::calculateGlobalStiffnessMatrix()
                 ValueVector.push_back(elementStiffness(row,column));
             }
         }
+    };
+    unsigned int LengthOfVector = RowIndices.size();  
+    umat locations(2,LengthOfVector);
+    locations.row(0) = urowvec(RowIndices);
+    locations.row(1) = urowvec(ColumnIndices);
 
-      };
-
-        unsigned int LengthOfVector = RowIndices.size();
-        umat locations(2,LengthOfVector);
-        locations.row(0) = urowvec(RowIndices);
-        locations.row(1) = urowvec(ColumnIndices);
-
-        globalStiffnessMatrix = sp_mat(true,locations,vec(ValueVector),numberDof,numberDof);
-        
-
-        for(const pair<double,unsigned>& pa: prescribedValuePair)
-        {
-            rowvec insertRow(numberDof,fill::zeros);
-            insertRow(pa.second) = 1.0;
-            globalStiffnessMatrix.row(pa.second)=insertRow;
-
-        }
-        mat(globalStiffnessMatrix).print();
-
+    globalStiffnessMatrix = sp_mat(true,locations,vec(ValueVector),numberDof,numberDof);
+    
+    for(const pair<double,unsigned>& pa: prescribedValuePair)
+    {
+      rowvec insertRow(numberDof,fill::zeros);
+      insertRow(pa.second) = 1.0;
+      globalStiffnessMatrix.row(pa.second)=insertRow;
+    }
+    //mat(globalStiffnessMatrix).print();
 };       
+
+void FiniteElementSolver::calculateRightHandSide()
+{
+    for(const pair<double,unsigned>& pa:prescribedValuePair)
+    {
+        rightHandSide(pa.second) = pa.first;
+    }
+    //rightHandSide.print();
+};
+void FiniteElementSolver::solveSystem()
+    {
+        solution = spsolve(globalStiffnessMatrix,rightHandSide); 
+        solution.print();
+    };
+

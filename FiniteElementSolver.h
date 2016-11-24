@@ -8,7 +8,7 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
-
+    
 
 //you Need to link agains -lgmp
 
@@ -26,16 +26,19 @@ class FiniteElementSolver
         Delaunay triangulation;
         arma::mat elementaryBasisMatrix;
         arma::mat PDEMatrix;
-        arma::mat rightHandSide;
+        arma::vec rightHandSide;
         arma::sp_mat globalStiffnessMatrix;
         arma::mat gradBasis;
-        std::vector<std::pair<double,unsigned>> prescribedValuePair;
+        std::vector<std::pair<double,unsigned> > prescribedValuePair;
+        arma::vec solution;
 
     public:
-        FiniteElementSolver(std::vector <std::pair<Point,unsigned> >& points,std::vector<std::pair<double,unsigned>> prescribed);   
+        FiniteElementSolver(std::vector <std::pair<Point,unsigned> >& points,std::vector<std::pair<double,unsigned> > prescribed);   
         void calculateTransform( Delaunay::Face_handle face,arma::mat& transformMatrix);
         arma::mat calculateElementStiffnessMatrix(Delaunay::Face_handle element);
         void calculateGlobalStiffnessMatrix();       
+        void calculateRightHandSide();
+        void solveSystem();
 
 };
 
