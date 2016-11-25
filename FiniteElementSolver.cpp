@@ -5,14 +5,20 @@ using namespace std;
 
 FiniteElementSolver::FiniteElementSolver(
         vector<pair<Point,unsigned> >& points,
-        vector<pair <double,unsigned> > prescribed
+        vector<pair <double,unsigned> > prescribed,
+        std::function<double (double,double)>& rightHandF
         )
 {
     prescribedValuePair = prescribed;
     
     triangulation.insert(points.begin(),points.end());
     PDEMatrix= mat(2,2,fill::eye);
-    
+    rightHandFunction = rightHandF;
+
+    elementaryBasisMatrix ={{1,0.5,0.5},
+                            {0.5,1,0.5},
+                            {0.5,0.5,1}};
+    elementaryBasisMatrix = elementaryBasisMatrix/12.0; 
     numberDof=points.size();
     rightHandSide = vec(numberDof,fill::zeros);
     solution= vec(numberDof,fill::zeros);
@@ -107,15 +113,59 @@ void FiniteElementSolver::calculateGlobalStiffnessMatrix()
 
 void FiniteElementSolver::calculateRightHandSide()
 {
+
+    for(Delaunay::Finite_faces_iterator fit = triangulation.finite_faces_begin(); 
+        fit != triangulation.finite_faces_end(); ++fit) 
+    {
+        Delaunay::Face_handle face = fit;
+        vec eleRightHandSide = calculateElementRightHandSide(face);
+        for (int i =0; i<3; ++i)
+        {
+            rightHandSide(face->vertex(i)->info())+=eleRightHandSide(i);
+        }
+    }
+     
     for(const pair<double,unsigned>& pa:prescribedValuePair)
     {
         rightHandSide(pa.second) = pa.first;
     }
+    //cout<<"RightHandSide:"<<endl;
     //rightHandSide.print();
 };
+
 void FiniteElementSolver::solveSystem()
     {
         solution = spsolve(globalStiffnessMatrix,rightHandSide); 
-        solution.print();
+        cout<<"solution:"<<endl;
+    for(Delaunay::Finite_vertices_iterator fit = triangulation.vertices_begin(); fit != triangulation.vertices_end(); ++fit)
+    {
+        Delaunay::Vertex_handle ver= fit;
+        cout<<solution(ver->info())<<" "<< ver->point()<<endl; 
+    }
+
     };
 
+mat FiniteElementSolver::calculateElementRightHandSide( Delaunay::Face_handle element)
+{
+    vec elementRightHandSide(3,fill::zeros);
+    mat transformMatrix(3,3);
+    calculateTransform(element,transformMatrix);
+    double determinant = abs(det(transformMatrix(span(0,1),span(0,1))));
+    vec functionEval(3,fill::zeros);
+    for (int i = 0; i<3 ; ++i)
+    {
+        Point evalpoint = element->vertex(i)->point();
+        functionEval(i) = rightHandFunction(evalpoint.x(),evalpoint.y()); 
+        //cout<<evalpoint<<"\t"<<element->vertex(i)->info()<<endl;
+    }
+    //cout<<endl; 
+    //cout<<"before eleCalc"<<endl;
+    //elementaryBasisMatrix.print();
+
+    elementRightHandSide = determinant * (elementaryBasisMatrix * functionEval);
+
+    //cout<<"ERHS";
+    //elementRightHandSide.print();
+    
+    return elementRightHandSide;
+};

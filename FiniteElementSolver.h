@@ -10,7 +10,6 @@
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
     
 
-//you Need to link agains -lgmp
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned int, Kernel> Vb;
@@ -31,13 +30,15 @@ class FiniteElementSolver
         arma::mat gradBasis;
         std::vector<std::pair<double,unsigned> > prescribedValuePair;
         arma::vec solution;
-
+        std::function<double (double,double)> rightHandFunction;
+        
     public:
-        FiniteElementSolver(std::vector <std::pair<Point,unsigned> >& points,std::vector<std::pair<double,unsigned> > prescribed);   
+        FiniteElementSolver(std::vector <std::pair<Point,unsigned> >& points,std::vector<std::pair<double,unsigned> > prescribed,std::function<double (double,double)>& rightHandF);   
         void calculateTransform( Delaunay::Face_handle face,arma::mat& transformMatrix);
         arma::mat calculateElementStiffnessMatrix(Delaunay::Face_handle element);
         void calculateGlobalStiffnessMatrix();       
         void calculateRightHandSide();
+        arma::mat calculateElementRightHandSide( Delaunay::Face_handle element );
         void solveSystem();
 
 };
