@@ -35,17 +35,17 @@ int main()
     //exact solution, used for calculating the boundary values
     function<double (double,double)> sol = [](double x, double y)
         {
-            return exp(x+0.2*y);
+            return 1+x*x +2*y*y;
         };
 
     //right Hand side given to the class instance for calculating the Right
     //Hand Side
     function<double (double,double)> rightFunction = [](double x, double y)
         {
-            return -1.04 * exp(x+0.2*y);
+            return -6;
         };
     double boundXMin,boundXMax,boundYMin,boundYMax;
-    boundXMin = 0.5;
+    boundXMin = 0;
     boundYMin = 0;
     boundXMax = 1;
     boundYMax = 1;

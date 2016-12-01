@@ -9,7 +9,7 @@ x = []
 y = []
 z = []
 
-sol = lambda x,y : np.exp(x+0.2*y)
+sol = lambda x,y : 1+x*x + 2* y*y
 
 for line in f.readlines():
     split = line.split()

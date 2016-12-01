@@ -1,5 +1,6 @@
 #ifndef FINITEELEMENT_H
 #define FINITEELEMENT_H
+
 #include <math.h>
 #include <armadillo>
 #include <iostream>
@@ -19,6 +20,23 @@ typedef Kernel::Point_2                                                Point;
 
 
 class FiniteElementSolver
+/*Class for solving the 2D Poisson equation Lu = f.
+ * Constructor takes a pair of points and indices, which specifie the domain
+ * and the global index of the vertex associated with this point.
+ *
+ * prescribed values is a pair of indices and values, which give the dirichlet
+ * boundary conditions.
+ *
+ * rightHandF holds the function of the right hand side of the PDE.
+ *
+ * Initating the class does not call any function.
+ *
+ * Genral process of solving the equation looks like this:
+ *  1. call calculateGlobalStiffnessMatrix()
+ *  2. call calculateRightHandSide()
+ *  3. solveSystem()
+ *
+ */
 {
     private:
         int numberDof;
@@ -32,14 +50,17 @@ class FiniteElementSolver
         arma::vec solution;
         std::function<double (double,double)> rightHandFunction;
         
-    public:
-        FiniteElementSolver(std::vector <std::pair<Point,unsigned> >& points,std::vector<std::pair<double,unsigned> > prescribed,std::function<double (double,double)>& rightHandF);   
         void calculateTransform( Delaunay::Face_handle face,arma::mat& transformMatrix);
         arma::mat calculateElementStiffnessMatrix(Delaunay::Face_handle element);
+        arma::mat calculateElementRightHandSide( Delaunay::Face_handle element );
+
+    public:
+        
+        FiniteElementSolver(std::vector <std::pair<Point,unsigned> >& points,std::vector<std::pair<double,unsigned> >& prescribed,std::function<double (double,double)>& rightHandF);   
         void calculateGlobalStiffnessMatrix();       
         void calculateRightHandSide();
-        arma::mat calculateElementRightHandSide( Delaunay::Face_handle element );
         void solveSystem();
+        arma::vec getSolution();
 
 };
 
